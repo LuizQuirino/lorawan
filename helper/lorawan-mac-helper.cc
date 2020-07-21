@@ -594,6 +594,111 @@ LorawanMacHelper::SetSpreadingFactorsUp (NodeContainer endDevices, NodeContainer
 } //  end function
 
 std::vector<int>
+LorawanMacHelper::SetSpreadingFactorsOrderCumVector (NodeContainer endDevices,
+                                                        NodeContainer gateways,
+                                                        std::vector<double> cumVector,
+                                                        Ptr<LoraChannel> channel)
+{
+  NS_LOG_FUNCTION_NOARGS ();
+
+  std::vector<int> sfQuantity (7, 0);
+  std::vector<double> rxPowerAll(endDevices.GetN(),0);
+  std::vector<int> order(endDevices.GetN(),0);
+  int cont = 0;
+  
+
+  for (NodeContainer::Iterator j = endDevices.Begin (); j != endDevices.End (); ++j)
+    {
+      Ptr<Node> object = *j;
+      Ptr<MobilityModel> position = object->GetObject<MobilityModel> ();
+      NS_ASSERT (position != 0);
+      Ptr<NetDevice> netDevice = object->GetDevice (0);
+      Ptr<LoraNetDevice> loraNetDevice = netDevice->GetObject<LoraNetDevice> ();
+      NS_ASSERT (loraNetDevice != 0);
+      Ptr<ClassAEndDeviceLorawanMac> mac = loraNetDevice->GetMac ()->GetObject<ClassAEndDeviceLorawanMac> ();
+      NS_ASSERT (mac != 0);
+
+      // Try computing the distance from each gateway and find the best one
+      Ptr<Node> bestGateway = gateways.Get (0);
+      Ptr<MobilityModel> bestGatewayPosition = bestGateway->GetObject<MobilityModel> ();
+
+      // Assume devices transmit at 14 dBm
+      double highestRxPower = channel->GetRxPower (14, position, bestGatewayPosition);
+
+      for (NodeContainer::Iterator currentGw = gateways.Begin () + 1; currentGw != gateways.End ();
+           ++currentGw)
+        {
+          // Compute the power received from the current gateway
+          Ptr<Node> curr = *currentGw;
+          Ptr<MobilityModel> currPosition = curr->GetObject<MobilityModel> ();
+          double currentRxPower = channel->GetRxPower (14, position, currPosition); // dBm
+
+          if (currentRxPower > highestRxPower)
+            {
+              bestGateway = curr;
+              bestGatewayPosition = curr->GetObject<MobilityModel> ();
+              highestRxPower = currentRxPower;
+            }
+        }
+
+      // NS_LOG_DEBUG ("Rx Power: " << highestRxPower);
+      double rxPower = highestRxPower;
+      rxPowerAll[cont]=rxPower;
+      order[cont]=cont;
+      cont++;
+    }
+      
+
+        for(uint32_t i=0 ; i < endDevices.GetN();i++){
+
+      Ptr<Node> object = endDevices.Get(order[i]);
+      Ptr<MobilityModel> position = object->GetObject<MobilityModel> ();
+      NS_ASSERT (position != 0);
+      Ptr<NetDevice> netDevice = object->GetDevice (0);
+      Ptr<LoraNetDevice> loraNetDevice = netDevice->GetObject<LoraNetDevice> ();
+      NS_ASSERT (loraNetDevice != 0);
+      Ptr<ClassAEndDeviceLorawanMac> mac = loraNetDevice->GetMac ()->GetObject<ClassAEndDeviceLorawanMac> ();
+      NS_ASSERT (mac != 0);
+        
+
+
+      if (i < cumVector[0]*endDevices.GetN())
+        {
+          mac->SetDataRate (5);
+          sfQuantity[0] = sfQuantity[0] + 1;
+        }
+      else if (i < cumVector[1]*endDevices.GetN())
+        {
+          mac->SetDataRate (4);
+          sfQuantity[1] = sfQuantity[1] + 1;
+        }
+      else if (i < cumVector[2]*endDevices.GetN())
+        {
+          mac->SetDataRate (3);
+          sfQuantity[2] = sfQuantity[2] + 1;
+        }
+      else if (i <cumVector[3]*endDevices.GetN())
+        {
+          mac->SetDataRate (2);
+          sfQuantity[3] = sfQuantity[3] + 1;
+        }
+      else if (i < cumVector[4]*endDevices.GetN())
+        {
+          mac->SetDataRate (1);
+          sfQuantity[4] = sfQuantity[4] + 1;
+        }
+      else
+        {
+          mac->SetDataRate (0);
+          sfQuantity[5] = sfQuantity[5] + 1;
+        }
+     }
+      
+ return sfQuantity;
+
+}
+
+std::vector<int>
 LorawanMacHelper::SetSpreadingFactorsGivenDistribution (NodeContainer endDevices,
                                                         NodeContainer gateways,
                                                         std::vector<double> distribution)

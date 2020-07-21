@@ -110,6 +110,11 @@ public:
    */
   static std::vector<int> SetSpreadingFactorsUp (NodeContainer endDevices, NodeContainer gateways,
                                                  Ptr<LoraChannel> channel);
+static std::vector<int> SetSpreadingFactorsOrderCumVector (NodeContainer endDevices,
+                                                                NodeContainer gateways,
+                                                                td::vector<double> cumVector,
+                                                                Ptr<LoraChannel> channel)
+
   /**
    * Set up the end device's data rates according to the given distribution.
    */
